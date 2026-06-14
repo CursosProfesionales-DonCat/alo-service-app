@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Flota - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-radius: 12px; border: none; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-truck text-primary me-2"></i> Gestión de Flota e Infraestructura</h2>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card kpi-card shadow-sm border-top border-4 border-primary">
+            <div class="card-header bg-white fw-bold text-primary border-0 pt-3">
+                <i class="bi bi-plus-circle-fill me-1"></i> Alta de Nueva Maquinaria
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/equipos">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Código Patrimonial</label>
+                        <input type="text" name="codigo_patrimonial" class="form-control bg-light" required placeholder="Ej. ALO-02">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nombre / Descripción</label>
+                        <input type="text" name="nombre" class="form-control bg-light" required placeholder="Ej. Plataforma Tijera 12MT">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Tipo de Equipo</label>
+                        <input type="text" name="tipo" class="form-control bg-light" required placeholder="Ej. TIJERA / ARTICULADA">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold">Asignar a Cliente (Propietario)</label>
+                        <select name="id_cliente" class="form-select bg-light">
+                            <option value="">-- Ninguno (Stock propio) --</option>
+                            {% for cli in clientes %}
+                            <option value="{{ cli.id_cliente }}">{{ cli.razon_social }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold rounded-3">Registrar Equipo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card kpi-card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Código / Nombre</th>
+                            <th>Tipo</th>
+                            <th>Cliente Propietario</th>
+                            <th>Horómetro</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eq in equipos %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ eq.codigo_patrimonial }}</div>
+                                <div class="small text-muted">{{ eq.nombre }}</div>
+                            </td>
+                            <td>{{ eq.tipo }}</td>
+                            <td>
+                                {% if eq.cliente %}
+                                    <span class="text-dark fw-semibold"><i class="bi bi-buildings-fill text-muted me-1"></i> {{ eq.cliente }}</span>
+                                {% else %}
+                                    <span class="text-muted small">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">{{ eq.horas_uso }} hrs</td>
+                            <td>
+                                {% if eq.estado == 'Operativo' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2">Operativo</span>
+                                {% elif eq.estado == 'Mantenimiento' %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill px-2">Mantenimiento</span>
+                                {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill px-2">{{ eq.estado }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-truck-flatbed fs-1 d-block mb-2"></i> No hay maquinaria registrada en la flota.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

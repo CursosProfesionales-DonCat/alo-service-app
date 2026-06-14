@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Control de Usuarios - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-radius: 12px; border: none; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-people-fill text-danger me-2"></i> Gestión de Usuarios del Sistema</h2>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card kpi-card shadow-sm border-top border-4 border-danger">
+            <div class="card-header bg-white fw-bold text-danger border-0 pt-3">
+                <i class="bi bi-person-plus-fill me-1"></i> Registrar Nuevo Colaborador
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/usuarios">
+                    <input type="hidden" name="accion" value="nuevo">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nombres y Apellidos</label>
+                        <input type="text" name="nombres" class="form-control bg-light" required placeholder="Ej. Carlos Mendoza">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Correo Institucional</label>
+                        <input type="email" name="correo" class="form-control bg-light" required placeholder="carlos@alo.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Contraseña de Acceso</label>
+                        <input type="password" name="contrasena" class="form-control bg-light" required placeholder="••••••••">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold">Asignar Rol Funcional</label>
+                        <select name="id_rol" class="form-select bg-light" required>
+                            <option value="" disabled selected>-- Seleccione Rol --</option>
+                            {% for r in roles %}
+                            <option value="{{ r.id_rol }}">{{ r.nombre_rol }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 fw-bold rounded-3">Dar de Alta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card kpi-card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Colaborador</th>
+                            <th>Correo</th>
+                            <th>Rol Asignado</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in usuarios %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ user.nombres }}</div>
+                                <div class="small text-muted">ID: #{{ user.id_usuario }}</div>
+                            </td>
+                            <td>{{ user.correo }}</td>
+                            <td>
+                                {% if user.id_rol == 1 %}
+                                    <span class="badge bg-danger rounded-pill px-2">Admin</span>
+                                {% elif user.id_rol == 3 %}
+                                    <span class="badge bg-warning text-dark rounded-pill px-2">Supervisor</span>
+                                {% elif user.id_rol == 4 %}
+                                    <span class="badge bg-success rounded-pill px-2">Técnico</span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill px-2">{{ user.nombre_rol }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3"
+                                        data-bs-toggle="modal" data-bs-target="#modalEditar{{ user.id_usuario }}">
+                                    <i class="bi bi-pencil-square me-1"></i> Editar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for user in usuarios %}
+<div class="modal fade" id="modalEditar{{ user.id_usuario }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-pencil-square text-primary me-2"></i>Editar Colaborador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/usuarios">
+                <input type="hidden" name="accion" value="editar">
+                <input type="hidden" name="id_usuario" value="{{ user.id_usuario }}">
+                
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nombres y Apellidos</label>
+                        <input type="text" name="nombres" class="form-control bg-light" value="{{ user.nombres }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Correo Electrónico</label>
+                        <input type="email" name="correo" class="form-control bg-light" value="{{ user.correo }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nueva Contraseña (Dejar en blanco para no cambiar)</label>
+                        <input type="password" name="contrasena" class="form-control bg-light" placeholder="Escriba nueva contraseña si desea cambiarla">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold">Modificar Rol de Acceso</label>
+                        <select name="id_rol" class="form-select bg-light" required>
+                            {% for r in roles %}
+                            <option value="{{ r.id_rol }}" {% if r.id_rol == user.id_rol %}selected{% endif %}>
+                                {{ r.nombre_rol }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

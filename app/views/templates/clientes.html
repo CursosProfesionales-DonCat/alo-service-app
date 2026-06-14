@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-radius: 12px; border: none; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-buildings-fill text-primary me-2"></i> Gestión de Clientes</h2>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card kpi-card shadow-sm border-top border-4 border-primary">
+            <div class="card-header bg-white fw-bold text-primary border-0 pt-3">
+                <i class="bi bi-person-plus-fill me-1"></i> Registrar Nuevo Cliente
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/clientes">
+                    <input type="hidden" name="accion" value="nuevo">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Razón Social</label>
+                        <input type="text" name="razon_social" class="form-control bg-light" required placeholder="Ej. Minera Las Bambas S.A.">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">RUC</label>
+                        <input type="text" name="ruc" class="form-control bg-light" required maxlength="11" placeholder="Ej. 20123456789">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nombre del Contacto (Opcional)</label>
+                        <input type="text" name="contacto" class="form-control bg-light" placeholder="Ej. Ing. Juan Pérez">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold">Tipo de Cliente</label>
+                        <select name="tipo_cliente" class="form-select bg-light" required>
+                            <option value="Externo">Cliente Externo (Tercero)</option>
+                            <option value="Interno">Cliente Interno (Alo Group)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold rounded-3">Registrar Cliente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card kpi-card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Razón Social / Empresa</th>
+                            <th>RUC</th>
+                            <th>Contacto</th>
+                            <th>Tipo</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cli in clientes %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">{{ cli.razon_social }}</td>
+                            <td>{{ cli.ruc }}</td>
+                            <td class="text-muted">{{ cli.contacto or 'No registrado' }}</td>
+                            <td>
+                                {% if cli.tipo_cliente == 'Interno' %}
+                                    <span class="badge bg-info text-dark rounded-pill px-2">Interno</span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill px-2">Externo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3"
+                                        data-bs-toggle="modal" data-bs-target="#modalEditarCliente{{ cli.id_cliente }}">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder-x fs-1 d-block mb-2"></i> No hay clientes registrados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for cli in clientes %}
+<div class="modal fade" id="modalEditarCliente{{ cli.id_cliente }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-buildings text-primary me-2"></i>Editar Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/clientes">
+                <input type="hidden" name="accion" value="editar">
+                <input type="hidden" name="id_cliente" value="{{ cli.id_cliente }}">
+                
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Razón Social</label>
+                        <input type="text" name="razon_social" class="form-control bg-light" value="{{ cli.razon_social }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">RUC</label>
+                        <input type="text" name="ruc" class="form-control bg-light" value="{{ cli.ruc }}" required maxlength="11">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nombre del Contacto</label>
+                        <input type="text" name="contacto" class="form-control bg-light" value="{{ cli.contacto or '' }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold">Tipo de Cliente</label>
+                        <select name="tipo_cliente" class="form-select bg-light" required>
+                            <option value="Externo" {% if cli.tipo_cliente == 'Externo' %}selected{% endif %}>Cliente Externo (Tercero)</option>
+                            <option value="Interno" {% if cli.tipo_cliente == 'Interno' %}selected{% endif %}>Cliente Interno (Alo Group)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

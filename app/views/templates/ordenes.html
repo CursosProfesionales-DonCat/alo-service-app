@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Órdenes de Trabajo - ALO SERVICE{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-card-checklist me-2"></i> Gestión de Órdenes de Trabajo</h2>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-warning text-dark font-weight-bold">
+                <i class="bi bi-plus-circle me-1"></i> Generar Nueva OT
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/ordenes">
+                    <div class="mb-3">
+                        <label class="form-label">Equipo a intervenir</label>
+                        <select name="id_equipo" class="form-select" required>
+                            <option value="" disabled selected>Seleccione un equipo...</option>
+                            {% for eq in equipos %}
+                                <option value="{{ eq.id_equipo }}">{{ eq.codigo_patrimonial }} - {{ eq.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Técnico Asignado</label>
+                        <select name="id_tecnico" class="form-select" required>
+                            <option value="" disabled selected>Seleccione un técnico...</option>
+                            {% for tec in tecnicos %}
+                                <option value="{{ tec.id_usuario }}">{{ tec.nombres }} {{ tec.apellidos }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Tipo de Mantenimiento</label>
+                        <select name="tipo_mantenimiento" class="form-select" required>
+                            <option value="Correctivo">Correctivo (Falla reportada)</option>
+                            <option value="Preventivo">Preventivo (Programado)</option>
+                            <option value="Predictivo">Predictivo (Alerta ML)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 font-weight-bold">Generar Orden</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white font-weight-bold">
+                <i class="bi bi-list-task me-1"></i> Historial de Órdenes (OT)
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th># OT</th>
+                            <th>Equipo (Código)</th>
+                            <th>Técnico Asignado</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ot in ordenes %}
+                        <tr>
+                            <td class="fw-bold text-primary">OT-{{ "%04d" | format(ot.id_ot) }}</td>
+                            <td>{{ ot.codigo_patrimonial }}</td>
+                            <td>{{ ot.tecnico }}</td>
+                            <td>{{ ot.tipo_mantenimiento }}</td>
+                            <td>
+                                {% if ot.estado == 'Pendiente' %}
+                                    <span class="badge bg-danger">Pendiente</span>
+                                {% elif ot.estado == 'En proceso' %}
+                                    <span class="badge bg-warning text-dark">En proceso</span>
+                                {% elif ot.estado == 'Cerrada' %}
+                                    <span class="badge bg-success">Cerrada</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ ot.estado }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No hay Órdenes de Trabajo generadas en el sistema.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

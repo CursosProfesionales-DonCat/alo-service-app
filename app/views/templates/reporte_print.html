@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo }} - ALO SERVICE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: white; padding: 30px; font-family: 'Segoe UI', Arial, sans-serif; }
+        .report-header { border-bottom: 3px solid #dc3545; padding-bottom: 15px; margin-bottom: 25px; }
+        .table { font-size: 0.85rem; }
+        /* Configuración específica para el guardado en PDF */
+        @media print {
+            @page { size: landscape; margin: 15mm; }
+            body { padding: 0; }
+            .btn-imprimir { display: none !important; } /* Oculta el botón en el PDF */
+            .table-dark th { background-color: #212529 !important; color: white !important; }
+        }
+    </style>
+</head>
+<body onload="window.print()"> <div class="report-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold text-dark mb-0">ALO SERVICE & PARTS S.A.C.</h2>
+            <p class="text-muted mb-0">Sistema de Mantenimiento Predictivo</p>
+        </div>
+        <div class="text-end">
+            <h5 class="mb-1 fw-bold text-danger">{{ titulo }}</h5>
+            <small class="text-muted">Fecha de generación: <strong>{{ fecha }}</strong></small>
+        </div>
+    </div>
+
+    <table class="table table-bordered table-striped align-middle text-center">
+        <thead class="table-dark">
+            <tr>
+                {% for col in columnas %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% if tipo == 'fallas' %}
+                {% for fila in datos %}
+                <tr>
+                    <td class="fw-bold">OT-{{ "%04d" | format(fila.id_ot) }}</td>
+                    <td class="text-primary fw-bold">{{ fila.equipo }}</td>
+                    <td>{{ fila.descripcion }}</td>
+                    <td><span class="badge bg-secondary">{{ fila.tipo_mantenimiento }}</span></td>
+                    <td>{{ fila.fecha_creacion }}</td>
+                    <td>{{ fila.fecha_cierre }}</td>
+                    <td class="text-start small">{{ fila.diagnostico }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center py-4 text-muted">No hay datos registrados.</td></tr>
+                {% endfor %}
+
+            {% elif tipo == 'eficiencia' %}
+                {% for fila in datos %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ fila.version_modelo }}</td>
+                    <td>{{ fila.fecha_entrenamiento }}</td>
+                    <td class="fw-bold text-success">{{ fila.precision }}%</td>
+                    <td class="fw-bold text-info">{{ fila.recall }}%</td>
+                    <td class="fw-bold text-dark">{{ fila.f1 }}%</td>
+                    <td class="text-start"><code class="small">{{ fila.parametros }}</code></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-4 text-muted">No hay datos registrados.</td></tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="text-center mt-5 btn-imprimir">
+        <button onclick="window.print()" class="btn btn-danger px-4 fw-bold">Imprimir / Guardar PDF</button>
+        <button onclick="window.close()" class="btn btn-outline-secondary px-4 fw-bold ms-2">Cerrar Pestaña</button>
+    </div>
+
+</body>
+</html>

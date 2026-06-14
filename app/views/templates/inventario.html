@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-radius: 12px; border: none; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-box-seam text-success me-2"></i> Control de Almacén</h2>
+    <span class="badge bg-success rounded-pill px-3 py-2 shadow-sm"><i class="bi bi-check-circle-fill me-1"></i> Stock General Operativo</span>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card kpi-card shadow-sm border-top border-4 border-success">
+            <div class="card-header bg-white fw-bold text-success border-0 pt-3">
+                <i class="bi bi-plus-circle-fill me-1"></i> Catalogar Nueva Pieza
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/inventario">
+                    <input type="hidden" name="accion" value="nuevo">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Código de Pieza</label>
+                        <input type="text" name="codigo_pieza" class="form-control bg-light" required placeholder="Ej. FLT-001">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Descripción del Repuesto</label>
+                        <input type="text" name="nombre" class="form-control bg-light" required placeholder="Ej. Filtro Hidráulico">
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <label class="form-label text-muted small fw-bold">Stock Inicial</label>
+                            <input type="number" name="stock_actual" class="form-control bg-light" required value="0" min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small fw-bold">Stock Mínimo</label>
+                            <input type="number" name="stock_minimo" class="form-control bg-light" required value="5" min="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-3">Registrar en Catálogo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card kpi-card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Repuesto</th>
+                            <th class="text-center">Stock Actual</th>
+                            <th class="text-center">Mínimo</th>
+                            <th>Estado</th>
+                            <th class="text-end pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rep in repuestos %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ rep.codigo_pieza }}</div>
+                                <div class="small text-muted">{{ rep.nombre }}</div>
+                            </td>
+                            <td class="text-center fw-bold fs-5 {% if rep.stock_actual <= rep.stock_minimo %}text-danger{% else %}text-success{% endif %}">
+                                {{ rep.stock_actual }}
+                            </td>
+                            <td class="text-center text-muted">{{ rep.stock_minimo }}</td>
+                            <td>
+                                {% if rep.stock_actual <= rep.stock_minimo %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill px-2">Bajo Stock</span>
+                                {% else %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2">Óptimo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold rounded-pill px-2 me-1"
+                                        data-bs-toggle="modal" data-bs-target="#modalEditarRepuesto{{ rep.id_repuesto }}" title="Editar Info">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3"
+                                        data-bs-toggle="modal" data-bs-target="#modalIngresarRepuesto{{ rep.id_repuesto }}">
+                                    <i class="bi bi-box-arrow-in-down"></i> Ingresar
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-box fs-1 d-block mb-2"></i> El almacén está vacío.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for rep in repuestos %}
+<div class="modal fade" id="modalEditarRepuesto{{ rep.id_repuesto }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-pencil-square text-secondary me-2"></i>Editar Catálogo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/inventario">
+                <input type="hidden" name="accion" value="editar">
+                <input type="hidden" name="id_repuesto" value="{{ rep.id_repuesto }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Código de Pieza</label>
+                        <input type="text" name="codigo_pieza" class="form-control bg-light" value="{{ rep.codigo_pieza }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Descripción del Repuesto</label>
+                        <input type="text" name="nombre" class="form-control bg-light" value="{{ rep.nombre }}" required>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label text-muted small fw-bold">Stock Actual</label>
+                            <input type="number" name="stock_actual" class="form-control bg-light" value="{{ rep.stock_actual }}" required min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small fw-bold">Alerta Stock Mínimo</label>
+                            <input type="number" name="stock_minimo" class="form-control bg-light" value="{{ rep.stock_minimo }}" required min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalIngresarRepuesto{{ rep.id_repuesto }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i>Ingresar Stock</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/inventario">
+                <input type="hidden" name="accion" value="ingresar">
+                <input type="hidden" name="id_repuesto" value="{{ rep.id_repuesto }}">
+                <div class="modal-body p-4 text-center">
+                    <h6 class="fw-bold text-dark mb-1">{{ rep.codigo_pieza }}</h6>
+                    <p class="text-muted small mb-3">{{ rep.nombre }}</p>
+                    <div class="mb-3 text-start">
+                        <label class="form-label text-muted small fw-bold">Cantidad a Ingresar (+)</label>
+                        <input type="number" name="cantidad" class="form-control form-control-lg text-center fw-bold bg-light text-primary" required min="1" value="1">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center bg-light">
+                    <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Sumar al Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos modernos para las tarjetas */
+    .kpi-card {
+        border-radius: 16px;
+        border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+    }
+    /* Círculos de fondo para los íconos */
+    .icon-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+    /* Contenedor fijo para los gráficos */
+    .chart-container {
+        position: relative;
+        height: 280px;
+        width: 100%;
+        padding: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-grid-fill me-2 text-primary"></i> Panel de Control Operativo</h2>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem; letter-spacing: 1px;">Equipos en Riesgo</h6>
+                    <h2 class="mb-0 text-danger fw-bold">{{ equipos_riesgo }} <span class="fs-6 text-muted fw-normal">Alertas</span></h2>
+                </div>
+                <div class="icon-circle bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem; letter-spacing: 1px;">OTs Pendientes</h6>
+                    <h2 class="mb-0 text-warning fw-bold">{{ ot_pendientes }} <span class="fs-6 text-muted fw-normal">Activas</span></h2>
+                </div>
+                <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-clipboard2-data-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem; letter-spacing: 1px;">Precisión Predictiva</h6>
+                    <h2 class="mb-0 text-success fw-bold">{{ eficiencia }}% <span class="fs-6 text-muted fw-normal">F1-Score</span></h2>
+                </div>
+                <div class="icon-circle bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cpu-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card kpi-card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-dark mb-4"><i class="bi bi-pie-chart-fill text-primary me-2"></i> Distribución de Flota Actual</h6>
+                <div class="chart-container">
+                    <canvas id="graficoFlota"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card kpi-card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-dark mb-4"><i class="bi bi-bar-chart-fill text-success me-2"></i> Órdenes de Trabajo por Tipo</h6>
+                <div class="chart-container">
+                    <canvas id="graficoOTs"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const labelsFlota = {{ labels_flota | tojson | safe }};
+    const dataFlota = {{ data_flota | tojson | safe }};
+    
+    const labelsOTs = {{ labels_ots | tojson | safe }};
+    const dataOTs = {{ data_ots | tojson | safe }};
+
+    // Paleta de colores moderna (estilo Tailwind CSS)
+    const coloresFlota = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6']; 
+    const colorBarras = '#3b82f6'; // Azul moderno
+
+    // Inicializar Gráfico 1 (Dona delgada)
+    if(labelsFlota.length > 0) {
+        const ctxFlota = document.getElementById('graficoFlota').getContext('2d');
+        new Chart(ctxFlota, {
+            type: 'doughnut',
+            data: {
+                labels: labelsFlota,
+                datasets: [{
+                    data: dataFlota,
+                    backgroundColor: coloresFlota,
+                    borderWidth: 0,
+                    hoverOffset: 5
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                cutout: '80%', // Hace la dona mucho más delgada y elegante
+                plugins: { 
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } 
+                }
+            }
+        });
+    } else {
+        document.getElementById('graficoFlota').outerHTML = "<div class='d-flex h-100 justify-content-center align-items-center text-muted'><p>No hay equipos registrados aún.</p></div>";
+    }
+
+    // Inicializar Gráfico 2 (Barras redondeadas)
+    if(labelsOTs.length > 0) {
+        const ctxOTs = document.getElementById('graficoOTs').getContext('2d');
+        new Chart(ctxOTs, {
+            type: 'bar',
+            data: {
+                labels: labelsOTs,
+                datasets: [{
+                    label: 'Cantidad de OTs',
+                    data: dataOTs,
+                    backgroundColor: colorBarras,
+                    borderRadius: 8, // Barras con puntas redondeadas
+                    maxBarThickness: 45 // Evita que la barra se vuelva gigante si solo hay un dato
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1 },
+                        grid: { borderDash: [5, 5], color: '#e5e7eb' }, // Líneas de fondo punteadas sutiles
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    } else {
+        document.getElementById('graficoOTs').outerHTML = "<div class='d-flex h-100 justify-content-center align-items-center text-muted'><p>No hay Órdenes generadas aún.</p></div>";
+    }
+</script>
+{% endblock %}

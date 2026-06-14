@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}ALO SERVICE & PARTS{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        /* Diseño Premium para el Sidebar */
+        .sidebar { 
+            background: linear-gradient(180deg, #1e2227 0%, #121417 100%); 
+            width: 260px; 
+            position: fixed; 
+            height: 100vh; /* ¡ESTA ES LA LÍNEA MÁGICA QUE LO ARREGLA! */
+            top: 0;        /* Lo ancla a la parte superior */
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            z-index: 1000;
+        }
+        .nav-pills .nav-link {
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            padding: 10px 15px;
+            color: rgba(255,255,255,0.7) !important;
+            margin-bottom: 4px;
+        }
+        .nav-pills .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+            color: #fff !important;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.4);
+        }
+        .nav-pills .nav-link.active-danger {
+            background-color: #dc3545 !important;
+            color: #fff !important;
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+        }
+        .menu-title {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: #6c757d;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            padding-left: 15px;
+        }
+        .main-content {
+            margin-left: 260px; 
+            width: calc(100% - 260px); 
+            min-height: 100vh;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-light">
+    
+    <div class="d-flex">
+        <div class="sidebar p-3 shadow-lg text-white">
+            <h5 class="text-center mt-2 mb-4 fw-bold text-uppercase" style="letter-spacing: 2px;">
+                <i class="bi bi-gear-wide-connected text-primary"></i> ALO SERVICE
+            </h5>
+            <hr class="border-secondary opacity-25">
+            
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                        <i class="bi bi-grid-fill me-2"></i> Dashboard
+                    </a>
+                </li>
+
+                {% if session.get('id_rol') in [1, 4] %}
+                <div class="menu-title">Operaciones de Campo</div>
+                
+                {% if session.get('id_rol') == 1 %}
+                <li class="nav-item">
+                    <a href="/clientes" class="nav-link {% if request.path == '/clientes' %}active{% endif %}">
+                        <i class="bi bi-buildings-fill me-2"></i> Cartera de Clientes
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="nav-item">
+                    <a href="/equipos" class="nav-link {% if request.path == '/equipos' %}active{% endif %}">
+                        <i class="bi bi-truck me-2"></i> Registro de Equipos
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if session.get('id_rol') == 4 %}
+                <div class="menu-title">Mi Trabajo</div>
+                <li class="nav-item">
+                    <a href="/mi_panel" class="nav-link {% if request.path == '/mi_panel' %}active{% endif %}">
+                        <i class="bi bi-wrench-adjustable-circle me-2"></i> Mis Órdenes (OTs)
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if session.get('id_rol') in [1, 3] %}
+                <div class="menu-title">Supervisión</div>
+                <li class="nav-item">
+                    <a href="/ordenes" class="nav-link {% if request.path == '/ordenes' %}active{% endif %}">
+                        <i class="bi bi-card-checklist me-2"></i> Gestión de OTs
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if session.get('id_rol') in [1, 3, 5] %}
+                <div class="menu-title">Logística</div>
+                <li class="nav-item">
+                    <a href="/inventario" class="nav-link {% if request.path == '/inventario' %}active{% endif %}">
+                        <i class="bi bi-box-seam me-2"></i> Inventario Almacén
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if session.get('id_rol') in [1, 2, 3, 4, 6] %}
+                <div class="menu-title">Inteligencia Artificial</div>
+                <li class="nav-item">
+                    <a href="/predictivo" class="nav-link {% if request.path == '/predictivo' %}active{% endif %}">
+                        <i class="bi bi-cpu-fill me-2"></i> Análisis Predictivo
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if session.get('id_rol') in [1, 6] %}
+                <li class="nav-item">
+                    <a href="/analista" class="nav-link {% if request.path == '/analista' %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow me-2"></i> Laboratorio ML
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if session.get('id_rol') in [1, 2, 3, 6] %}
+                <div class="menu-title">Gerencia</div>
+                <li class="nav-item">
+                    <a href="/reportes" class="nav-link {% if request.path == '/reportes' %}active-danger{% endif %}">
+                        <i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reportes Exportables
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% if session.get('id_rol') == 1 %}
+                <div class="menu-title">Administración</div>
+                <li class="nav-item">
+                    <a href="/usuarios" class="nav-link {% if request.path == '/usuarios' %}active-danger{% endif %}">
+                        <i class="bi bi-people-fill me-2"></i> Control de Usuarios
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <hr class="border-secondary opacity-25 mt-4">
+            
+            <div class="d-flex align-items-center mb-3 bg-dark p-2 rounded-3 border border-secondary border-opacity-25 shadow-sm">
+                <div class="rounded-circle bg-primary bg-gradient d-flex justify-content-center align-items-center text-white me-2 shadow-sm" style="width: 42px; height: 42px;">
+                    <i class="bi bi-person-fill fs-5"></i>
+                </div>
+                <div class="text-truncate">
+                    <span class="d-block fw-bold fs-6 text-white">{{ session.get('nombres') }}</span>
+                    <span class="text-info fw-semibold" style="font-size: 0.70rem; letter-spacing: 0.5px;">
+                        {% if session.get('id_rol') == 1 %}ADMINISTRADOR
+                        {% elif session.get('id_rol') == 2 %}GERENTE
+                        {% elif session.get('id_rol') == 3 %}SUPERVISOR
+                        {% elif session.get('id_rol') == 4 %}TÉCNICO
+                        {% elif session.get('id_rol') == 5 %}ENC. ALMACÉN
+                        {% elif session.get('id_rol') == 6 %}ANALISTA
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <a href="/logout" class="btn btn-outline-danger btn-sm w-100 fw-bold shadow-sm transition">
+                <i class="bi bi-box-arrow-left me-1"></i> Cerrar Sesión
+            </a>
+        </div>
+
+        <div class="p-4 bg-light main-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

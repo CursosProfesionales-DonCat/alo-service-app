@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Panel de Trabajo - Técnico{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-tools me-2"></i> Mis Órdenes Asignadas</h2>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    {% for ot in ordenes %}
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0 border-top border-4 border-warning">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-5">OT-{{ "%04d" | format(ot.id_ot) }}</span>
+                <span class="badge bg-danger">{{ ot.estado }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ ot.codigo_patrimonial }}</h5>
+                <p class="card-text text-muted mb-2">{{ ot.equipo }}</p>
+                <p class="mb-3"><strong>Tipo de Mantenimiento:</strong> {{ ot.tipo_mantenimiento }}</p>
+                <p class="mb-3 small text-muted"><i class="bi bi-clock"></i> Creada: {{ ot.fecha_creacion }}</p>
+
+                <form method="POST" action="/mi_panel" class="bg-light p-3 rounded border">
+                    <input type="hidden" name="id_ot" value="{{ ot.id_ot }}">
+                    <input type="hidden" name="id_equipo" value="{{ ot.id_equipo }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Actualizar Horas de Uso (CU-08)</label>
+                        <input type="number" name="kilometraje" class="form-control" value="{{ ot.horas_uso }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Diagnóstico Técnico (CU-11)</label>
+                        <textarea name="diagnostico" class="form-control" rows="2" placeholder="Describa el trabajo realizado..." required></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-8">
+                            <label class="form-label fw-bold">Consumir Repuesto</label>
+                            <select name="id_repuesto" class="form-select">
+                                <option value="">No utilizar repuestos</option>
+                                {% for rep in repuestos %}
+                                    <option value="{{ rep.id_repuesto }}">{{ rep.codigo_pieza }} - {{ rep.nombre }} (Stock: {{ rep.stock_actual }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-bold">Cantidad</label>
+                            <input type="number" name="cantidad_repuesto" class="form-control" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100" onclick="return confirm('¿Confirma que desea cerrar esta OT y descontar el repuesto del inventario?');">
+                        <i class="bi bi-check-circle"></i> Cerrar Orden de Trabajo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <h4 class="text-muted"><i class="bi bi-emoji-sunglasses fs-1 d-block mb-3"></i>No tienes órdenes pendientes.</h4>
+        <p>Estás al día con tus mantenimientos asignados.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

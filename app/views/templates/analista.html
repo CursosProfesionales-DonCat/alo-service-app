@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Laboratorio ML - ALO SERVICE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-radius: 12px; border: none; transition: transform 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark"><i class="bi bi-graph-up-arrow text-primary me-2"></i> Laboratorio de Machine Learning</h2>
+    <form method="POST" action="/analista">
+        <button type="submit" class="btn btn-dark fw-bold shadow-sm rounded-pill px-4" onclick="return confirm('¿Iniciar ciclo de reentrenamiento con los últimos datos registrados?');">
+            <i class="bi bi-arrow-repeat me-2"></i> Reentrenar Modelo (CU-22)
+        </button>
+    </form>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+{% if actual %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3 border-top border-4 border-success">
+            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem;">Precisión (Accuracy)</h6>
+            <h2 class="mb-0 text-success fw-bold">{{ "%.2f"|format(actual.precision_score * 100) }}%</h2>
+            <small class="text-muted">Proporción de predicciones correctas totales.</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3 border-top border-4 border-info">
+            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem;">Sensibilidad (Recall)</h6>
+            <h2 class="mb-0 text-info fw-bold">{{ "%.2f"|format(actual.recall_score * 100) }}%</h2>
+            <small class="text-muted">Capacidad de detectar equipos que realmente van a fallar.</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card shadow-sm h-100 p-3 border-top border-4 border-primary">
+            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.8rem;">F1-Score</h6>
+            <h2 class="mb-0 text-primary fw-bold">{{ "%.2f"|format(actual.f1_score * 100) }}%</h2>
+            <small class="text-muted">Equilibrio perfecto entre Precisión y Recall.</small>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card kpi-card shadow-sm">
+    <div class="card-header bg-white fw-bold text-dark border-0 pt-3 pb-3">
+        <i class="bi bi-clock-history me-1 text-secondary"></i> Historial de Entrenamientos y Versiones
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th class="ps-4">Versión del Modelo</th>
+                    <th>Fecha de Entrenamiento</th>
+                    <th class="text-center">Precisión</th>
+                    <th class="text-center">F1-Score</th>
+                    <th>Parámetros Utilizados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in historial %}
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">{{ row.version_modelo }}</td>
+                    <td class="text-muted">{{ row.fecha_entrenamiento }}</td>
+                    <td class="text-center fw-bold">{{ "%.2f"|format(row.precision_score * 100) }}%</td>
+                    <td class="text-center fw-bold">{{ "%.2f"|format(row.f1_score * 100) }}%</td>
+                    <td class="text-muted small"><code>{{ row.parametros }}</code></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

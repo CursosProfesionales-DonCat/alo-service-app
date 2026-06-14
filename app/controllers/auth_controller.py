@@ -89,18 +89,28 @@ def login():
 @auth_bp.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        correo = request.form.get('correo')
+        correo = request.form.get('correo').strip()
         from app.models.usuario_model import UsuarioModel
         usuario = UsuarioModel.obtener_por_correo(correo)
         
-        if usuario:
-            token = secrets.token_hex(32)
-            expiry = datetime.now() + timedelta(hours=1)
+        # DIAGNÓSTICO 1: ¿El correo realmente existe en Supabase?
+        if not usuario:
+            flash(f'DIAGNÓSTICO: El correo "{correo}" NO existe en tu tabla de usuarios en Supabase.', 'danger')
+            return render_template('auth/forgot_password.html')
             
-            UsuarioModel.guardar_token_recuperacion(correo, token, expiry)
-            enviar_correo_recuperacion(correo, token)
+        token = secrets.token_hex(32)
+        expiry = datetime.now() + timedelta(hours=1)
+        
+        UsuarioModel.guardar_token_recuperacion(correo, token, expiry)
+        
+        # DIAGNÓSTICO 2: ¿Gmail acepta o rechaza el envío?
+        enviado = enviar_correo_recuperacion(correo, token)
+        
+        if enviado:
+            flash('¡ÉXITO! El correo fue aceptado por Gmail y enviado correctamente.', 'success')
+        else:
+            flash('DIAGNÓSTICO: Falló la conexión SMTP con Gmail. Revisa las letras rojas en los Logs de Render.', 'danger')
             
-        flash('Si el correo existe, hemos enviado un enlace de recuperación.', 'info')
         return redirect(url_for('auth.login'))
         
     return render_template('auth/forgot_password.html')

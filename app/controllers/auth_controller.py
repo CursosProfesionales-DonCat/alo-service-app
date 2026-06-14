@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
+import joblib
+import pandas as pd
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -139,15 +142,12 @@ def dashboard():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
         
-        # 1. KPI: Equipos en Riesgo ALTO
         cursor.execute("SELECT COUNT(*) as total FROM equipos_historial WHERE nivel_riesgo = 'ALTO'")
         equipos_riesgo = cursor.fetchone()['total'] or 0
         
-        # 2. KPI: Suma total de OTs abiertas
         cursor.execute("SELECT SUM(ot_abiertas) as total FROM equipos_historial")
         ot_pendientes = cursor.fetchone()['total'] or 0
 
-        # 3. KPI: Precisión Predictiva (Placeholder hasta entrenar la IA)
         try:
             cursor.execute("SELECT precision_score FROM metricas_modelo_ml ORDER BY id_metrica DESC LIMIT 1")
             res_metrica = cursor.fetchone()
@@ -155,13 +155,11 @@ def dashboard():
         except:
             eficiencia_modelo = 92.4
 
-        # Gráfico 1: Dona por Nivel de Riesgo
         cursor.execute("SELECT nivel_riesgo, COUNT(*) as total FROM equipos_historial GROUP BY nivel_riesgo")
         estados_db = cursor.fetchall()
         labels_flota = [row['nivel_riesgo'] for row in estados_db]
         data_flota = [row['total'] for row in estados_db]
 
-        # Gráfico 2: Barras por Criticidad
         cursor.execute("SELECT criticidad, COUNT(*) as total FROM equipos_historial GROUP BY criticidad")
         ots_db = cursor.fetchall()
         labels_ots = [row['criticidad'] for row in ots_db]
@@ -259,7 +257,90 @@ def gestionar_usuarios():
     conexion.close()
     return render_template('usuarios.html', usuarios=lista_usuarios, roles=lista_roles)
 
+# --- NUEVA RUTA: MONITOR PREDICTIVO IA ---
+@auth_bp.route('/predicciones')
+def predicciones():
+    if 'id_usuario' not in session:
+        return redirect(url_for('auth.login'))
+
+    resultados = []
+    modelo_cargado = False
+    
+    ruta_modelo = 'app/models/ml/random_forest_alo.pkl'
+    ruta_encoder = 'app/models/ml/encoder_criticidad.pkl'
+    
+    if os.path.exists(ruta_modelo) and os.path.exists(ruta_encoder):
+        try:
+            modelo = joblib.load(ruta_modelo)
+            encoder = joblib.load(ruta_encoder)
+            modelo_cargado = True
+            
+            conexion = obtener_conexion()
+            cursor = conexion.cursor()
+            
+            # Seleccionamos los últimos 12 equipos de la flota para monitoreo
+            cursor.execute("""
+                SELECT id_equipo, codigo_patrimonial, nombre, estado, horas_uso, fecha_adquisicion 
+                FROM equipos 
+                ORDER BY id_equipo DESC LIMIT 12
+            """)
+            equipos_db = cursor.fetchall()
+            
+            for eq in equipos_db:
+                id_eq = eq['id_equipo']
+                
+                # 1. Antigüedad
+                try:
+                    antiguedad = (datetime.now().date() - eq['fecha_adquisicion'].date()).days // 365
+                except:
+                    antiguedad = 5
+                    
+                # 2. OTs Pendientes
+                cursor.execute("SELECT COUNT(*) as total FROM ordenes_trabajo WHERE id_equipo = %s AND estado = 'Pendiente'", (id_eq,))
+                ot_abiertas = cursor.fetchone()['total']
+                
+                # 3. Fallas históricas
+                cursor.execute("SELECT COUNT(*) as total FROM fallas WHERE id_equipo = %s", (id_eq,))
+                fallas = cursor.fetchone()['total']
+                
+                # 4. Derivamos variables de telemetría para la IA
+                horas = eq['horas_uso'] or 0
+                kilometraje = horas * 25 
+                criticidad = "Alto" if fallas >= 2 else "Medio"
+                dias_mant = 45 # Promedio simulado desde el último mantenimiento
+                
+                # 5. Transformamos y predecimos
+                crit_num = encoder.transform([criticidad])[0]
+                datos_ia = pd.DataFrame([[kilometraje, crit_num, dias_mant, fallas, horas, antiguedad, ot_abiertas]],
+                                        columns=['kilometraje', 'criticidad_num', 'dias_ultimo_mant', 'fallas_6_meses', 'horas_uso', 'antiguedad_anios', 'ot_abiertas'])
+                
+                probabilidades = modelo.predict_proba(datos_ia)[0]
+                prob_falla = round(max(probabilidades) * 100, 1)
+                nivel_riesgo = modelo.predict(datos_ia)[0]
+                
+                color = 'success'
+                if prob_falla >= 75.0: color = 'danger'
+                elif prob_falla >= 40.0: color = 'warning'
+                
+                resultados.append({
+                    'codigo': eq['codigo_patrimonial'],
+                    'nombre': eq['nombre'],
+                    'estado': nivel_riesgo,
+                    'horas': horas,
+                    'prob_falla': prob_falla,
+                    'color': color
+                })
+                
+            cursor.close()
+            conexion.close()
+        except Exception as e:
+            print(f"Error procesando IA: {e}")
+            modelo_cargado = False
+
+    return render_template('predicciones.html', modelo_cargado=modelo_cargado, resultados=resultados)
+
 @auth_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('auth.login'))    
+    return redirect(url_for('auth.login'))
+    

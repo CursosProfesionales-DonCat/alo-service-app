@@ -23,12 +23,12 @@
     <div class="alert alert-danger text-center p-5 shadow-sm">
         <h4><i class="bi bi-exclamation-octagon-fill text-danger" style="font-size: 3rem;"></i></h4>
         <h4 class="mt-3">Error: Modelo Predictivo no encontrado</h4>
-        <p>El sistema no encuentra el archivo <code>modelo_mantenimiento.pkl</code>. Por favor, ejecuta el script de entrenamiento en la terminal.</p>
+        <p>El sistema no encuentra los archivos <code>random_forest_alo.pkl</code> o el encoder. Por favor, asegúrate de haber ejecutado el entrenamiento.</p>
     </div>
 {% else %}
     <div class="row">
         <div class="col-12 mb-4">
-            <p class="text-muted">El algoritmo analiza en tiempo real las <strong>horas de uso</strong> actualizadas por los técnicos en la base de datos y clasifica el riesgo de falla inminente para cada equipo de la flota.</p>
+            <p class="text-muted">El algoritmo extrae en tiempo real las variables relacionales de la base de datos (horas de uso, historial de fallas, OTs pendientes) y clasifica el riesgo inminente de cada equipo.</p>
         </div>
 
         {% for eq in resultados %}
@@ -57,11 +57,11 @@
                     </div>
 
                     {% if eq.prob_falla >= 75.0 %}
-                        <a href="/ordenes" class="btn btn-danger w-100 btn-sm fw-bold">
+                        <a href="#" class="btn btn-danger w-100 btn-sm fw-bold">
                             <i class="bi bi-exclamation-triangle-fill"></i> Crear OT de Emergencia
                         </a>
                     {% elif eq.prob_falla >= 40.0 %}
-                        <a href="/ordenes" class="btn btn-outline-warning text-dark w-100 btn-sm fw-bold">
+                        <a href="#" class="btn btn-outline-warning text-dark w-100 btn-sm fw-bold">
                             <i class="bi bi-calendar-check"></i> Programar OT Preventiva
                         </a>
                     {% else %}

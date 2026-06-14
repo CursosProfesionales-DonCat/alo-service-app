@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 import joblib
 import pandas as pd
+import random
 
 auth_bp = Blueprint('auth', __name__)
 

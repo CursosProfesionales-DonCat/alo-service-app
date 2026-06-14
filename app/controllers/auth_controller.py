@@ -11,7 +11,6 @@ from email.mime.multipart import MIMEMultipart
 
 auth_bp = Blueprint('auth', __name__)
 
-# CORREGIDO: Conexión nativa a PostgreSQL usando RealDictCursor
 def obtener_conexion():
     return psycopg2.connect(
         host=Config.PG_HOST,
@@ -22,11 +21,9 @@ def obtener_conexion():
         cursor_factory=psycopg2.extras.RealDictCursor
     )
 
-# --- FUNCIÓN DE UTILIDAD PARA ENVIAR CORREOS ---
 def enviar_correo_recuperacion(destinatario, token):
-    # ¡IMPORTANTE! REEMPLAZA ESTO ANTES DE SUBIR A GITHUB:
-    remitente = "junjunaloe004@gmail.com" 
-    password_app = "zcptnxrnrgonapsk" 
+    remitente = "junjunaloe004@gmail.com" # REEMPLAZA
+    password_app = "zcptnxrnrgonapsk" # REEMPLAZA
     
     enlace = url_for('auth.reset_password', token=token, _external=True)
     
@@ -50,7 +47,6 @@ def enviar_correo_recuperacion(destinatario, token):
     msg.attach(MIMEText(cuerpo, 'html'))
     
     try:
-        # AQUÍ ESTÁ LA MODIFICACIÓN: timeout=15 para evitar que Render se congele (Error 502)
         server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
         server.starttls()
         server.login(remitente, password_app)
@@ -60,8 +56,6 @@ def enviar_correo_recuperacion(destinatario, token):
     except Exception as e:
         print(f"Error enviando correo: {e}")
         return False
-
-# --- RUTAS DE AUTENTICACIÓN ---
 
 @auth_bp.route('/', methods=['GET', 'POST'])
 def login():
@@ -93,23 +87,20 @@ def forgot_password():
         from app.models.usuario_model import UsuarioModel
         usuario = UsuarioModel.obtener_por_correo(correo)
         
-        # DIAGNÓSTICO 1: ¿El correo realmente existe en Supabase?
         if not usuario:
-            flash(f'DIAGNÓSTICO: El correo "{correo}" NO existe en tu tabla de usuarios en Supabase.', 'danger')
+            flash(f'DIAGNÓSTICO: El correo "{correo}" NO existe en tu tabla de usuarios.', 'danger')
             return render_template('auth/forgot_password.html')
             
         token = secrets.token_hex(32)
         expiry = datetime.now() + timedelta(hours=1)
         
         UsuarioModel.guardar_token_recuperacion(correo, token, expiry)
-        
-        # DIAGNÓSTICO 2: ¿Gmail acepta o rechaza el envío?
         enviado = enviar_correo_recuperacion(correo, token)
         
         if enviado:
-            flash('¡ÉXITO! El correo fue aceptado por Gmail y enviado correctamente.', 'success')
+            flash('¡ÉXITO! El correo fue aceptado y enviado correctamente.', 'success')
         else:
-            flash('DIAGNÓSTICO: Falló la conexión SMTP con Gmail. Revisa las letras rojas en los Logs de Render.', 'danger')
+            flash('DIAGNÓSTICO: Falló la conexión SMTP con Gmail.', 'danger')
             
         return redirect(url_for('auth.login'))
         
@@ -148,30 +139,39 @@ def dashboard():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
         
-        cursor.execute("SELECT COUNT(*) as total FROM equipos WHERE estado = 'Crítico' OR estado = 'Mantenimiento'")
+        # 1. KPI: Equipos en Riesgo ALTO
+        cursor.execute("SELECT COUNT(*) as total FROM equipos_historial WHERE nivel_riesgo = 'ALTO'")
         equipos_riesgo = cursor.fetchone()['total'] or 0
         
-        cursor.execute("SELECT COUNT(*) as total FROM ordenes_trabajo WHERE estado = 'Pendiente'")
+        # 2. KPI: Suma total de OTs abiertas
+        cursor.execute("SELECT SUM(ot_abiertas) as total FROM equipos_historial")
         ot_pendientes = cursor.fetchone()['total'] or 0
 
-        cursor.execute("SELECT precision_score FROM metricas_modelo_ml ORDER BY id_metrica DESC LIMIT 1")
-        res_metrica = cursor.fetchone()
-        eficiencia_modelo = round(float(res_metrica['precision_score']) * 100, 1) if res_metrica else 92.4
+        # 3. KPI: Precisión Predictiva (Placeholder hasta entrenar la IA)
+        try:
+            cursor.execute("SELECT precision_score FROM metricas_modelo_ml ORDER BY id_metrica DESC LIMIT 1")
+            res_metrica = cursor.fetchone()
+            eficiencia_modelo = round(float(res_metrica['precision_score']) * 100, 1) if res_metrica else 92.4
+        except:
+            eficiencia_modelo = 92.4
 
-        cursor.execute("SELECT estado, COUNT(*) as total FROM equipos GROUP BY estado")
+        # Gráfico 1: Dona por Nivel de Riesgo
+        cursor.execute("SELECT nivel_riesgo, COUNT(*) as total FROM equipos_historial GROUP BY nivel_riesgo")
         estados_db = cursor.fetchall()
-        labels_flota = [row['estado'] for row in estados_db]
+        labels_flota = [row['nivel_riesgo'] for row in estados_db]
         data_flota = [row['total'] for row in estados_db]
 
-        cursor.execute("SELECT tipo_mantenimiento, COUNT(*) as total FROM ordenes_trabajo GROUP BY tipo_mantenimiento")
+        # Gráfico 2: Barras por Criticidad
+        cursor.execute("SELECT criticidad, COUNT(*) as total FROM equipos_historial GROUP BY criticidad")
         ots_db = cursor.fetchall()
-        labels_ots = [row['tipo_mantenimiento'] for row in ots_db]
+        labels_ots = [row['criticidad'] for row in ots_db]
         data_ots = [row['total'] for row in ots_db]
 
     except Exception as e:
+        print(f"Error en dashboard: {e}")
         equipos_riesgo = 0
         ot_pendientes = 0
-        eficiencia_modelo = 92.4
+        eficiencia_modelo = 0
         labels_flota, data_flota = [], []
         labels_ots, data_ots = [], []
     finally:
@@ -202,7 +202,6 @@ def gestionar_usuarios():
             correo = request.form.get('correo')
             contrasena = request.form.get('contrasena')
             id_rol = request.form.get('id_rol')
-
             hash_pw = bcrypt.hashpw(contrasena.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
             try:
@@ -241,10 +240,10 @@ def gestionar_usuarios():
                 flash('Datos del usuario actualizados correctamente.', 'success')
             except psycopg2.IntegrityError:
                 conexion.rollback()
-                flash('Error: El correo electrónico ya pertenece a otro usuario.', 'danger')
+                flash('Error: El correo pertenece a otro usuario.', 'danger')
             except Exception as e:
                 conexion.rollback()
-                flash(f'Error al actualizar usuario: {str(e)}', 'danger')
+                flash(f'Error al actualizar: {str(e)}', 'danger')
 
     cursor.execute("""
         SELECT u.*, r.nombre as nombre_rol 
@@ -263,5 +262,4 @@ def gestionar_usuarios():
 @auth_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('auth.login'))
-    
+    return redirect(url_for('auth.login'))    

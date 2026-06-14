@@ -24,8 +24,9 @@ def obtener_conexion():
 
 # --- FUNCIÓN DE UTILIDAD PARA ENVIAR CORREOS ---
 def enviar_correo_recuperacion(destinatario, token):
-    remitente = "junjunaloe004@gmail.com" # REEMPLAZA CON TU CORREO
-    password_app = "zcptnxrnrgonapsk" # REEMPLAZA CON TU CLAVE DE APLICACIÓN
+    # ¡IMPORTANTE! REEMPLAZA ESTO ANTES DE SUBIR A GITHUB:
+    remitente = "junjunaloe004@gmail.com" 
+    password_app = "zcptnxrnrgonapsk" 
     
     enlace = url_for('auth.reset_password', token=token, _external=True)
     
@@ -49,7 +50,8 @@ def enviar_correo_recuperacion(destinatario, token):
     msg.attach(MIMEText(cuerpo, 'html'))
     
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        # AQUÍ ESTÁ LA MODIFICACIÓN: timeout=15 para evitar que Render se congele (Error 502)
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
         server.starttls()
         server.login(remitente, password_app)
         server.send_message(msg)
@@ -252,3 +254,4 @@ def gestionar_usuarios():
 def logout():
     session.clear()
     return redirect(url_for('auth.login'))
+    
